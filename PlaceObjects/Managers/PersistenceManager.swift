@@ -38,11 +38,13 @@ class PersistenceManager: ObservableObject {
         self.container = CKContainer(identifier: Self.cloudKitContainerIdentifier)
         self.database = container.privateCloudDatabase
         
-        // Load from local storage
+        // Load from local storage first (don't wait for iCloud)
         loadFromLocalStorage()
         
-        // Check iCloud availability
-        checkiCloudStatus()
+        // Check iCloud availability asynchronously (non-blocking)
+        DispatchQueue.global(qos: .background).async { [weak self] in
+            self?.checkiCloudStatus()
+        }
     }
     
     // MARK: - Local Storage
@@ -117,22 +119,45 @@ class PersistenceManager: ObservableObject {
     // MARK: - iCloud Sync
     
     private func checkiCloudStatus() {
-        container.accountStatus { [weak self] status, error in
+        // Add timeout to prevent hanging in simulator
+        let timeoutWorkItem = DispatchWorkItem { [weak self] in
             DispatchQueue.main.async {
-                if error != nil {
+                print("iCloud status check timed out - disabling iCloud sync")
+                self?.iCloudSyncEnabled = false
+            }
+        }
+        
+        DispatchQueue.global().asyncAfter(deadline: .now() + 5.0, execute: timeoutWorkItem)
+        
+        container.accountStatus { [weak self] status, error in
+            timeoutWorkItem.cancel() // Cancel timeout if we got a response
+            
+            DispatchQueue.main.async {
+                if let error = error {
+                    print("iCloud status check error: \(error.localizedDescription)")
                     self?.iCloudSyncEnabled = false
                     return
                 }
                 
                 switch status {
                 case .available:
+                    print("iCloud available - enabling sync")
                     self?.iCloudSyncEnabled = true
                     self?.syncFromiCloud()
-                case .noAccount, .restricted, .couldNotDetermine:
+                case .noAccount:
+                    print("No iCloud account - sync disabled")
+                    self?.iCloudSyncEnabled = false
+                case .restricted:
+                    print("iCloud restricted - sync disabled")
+                    self?.iCloudSyncEnabled = false
+                case .couldNotDetermine:
+                    print("Could not determine iCloud status - sync disabled")
                     self?.iCloudSyncEnabled = false
                 case .temporarilyUnavailable:
+                    print("iCloud temporarily unavailable - sync disabled")
                     self?.iCloudSyncEnabled = false
                 @unknown default:
+                    print("Unknown iCloud status - sync disabled")
                     self?.iCloudSyncEnabled = false
                 }
             }
