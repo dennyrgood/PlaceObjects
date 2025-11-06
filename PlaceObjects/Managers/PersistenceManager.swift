@@ -23,8 +23,12 @@ class PersistenceManager: ObservableObject {
     @Published var syncStatus: SyncStatus = .idle
     
     private let localStorageKey = "PlacedObjectsData"
-    private let container: CKContainer
-    private let database: CKDatabase
+    private lazy var container: CKContainer = {
+        return CKContainer(identifier: Self.cloudKitContainerIdentifier)
+    }()
+    private lazy var database: CKDatabase = {
+        return container.privateCloudDatabase
+    }()
     
     enum SyncStatus {
         case idle
@@ -34,17 +38,12 @@ class PersistenceManager: ObservableObject {
     }
     
     init() {
-        // Initialize CloudKit container using configurable identifier
-        self.container = CKContainer(identifier: Self.cloudKitContainerIdentifier)
-        self.database = container.privateCloudDatabase
-        
-        // Load from local storage first (don't wait for iCloud)
+        // Load from local storage immediately (no CloudKit dependency)
         loadFromLocalStorage()
         
-        // Check iCloud availability asynchronously (non-blocking)
-        DispatchQueue.global(qos: .background).async { [weak self] in
-            self?.checkiCloudStatus()
-        }
+        // Only check iCloud if explicitly enabled by user
+        // Don't check automatically to avoid simulator issues
+        print("PersistenceManager initialized - iCloud sync disabled by default")
     }
     
     // MARK: - Local Storage
@@ -266,10 +265,14 @@ class PersistenceManager: ObservableObject {
     
     /// Toggle iCloud sync
     func toggleiCloudSync() {
-        iCloudSyncEnabled.toggle()
-        
-        if iCloudSyncEnabled {
-            syncFromiCloud()
+        if !iCloudSyncEnabled {
+            // User is turning it ON - check status first
+            print("User enabling iCloud sync - checking status...")
+            checkiCloudStatus()
+        } else {
+            // User is turning it OFF
+            print("User disabled iCloud sync")
+            iCloudSyncEnabled = false
         }
     }
 }
