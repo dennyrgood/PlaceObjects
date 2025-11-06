@@ -12,8 +12,8 @@
 		A1000005000000000000001 /* ImmersiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000006000000000000001 /* ImmersiveView.swift */; };
 		A1000007000000000000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1000008000000000000001 /* Assets.xcassets */; };
 		A1000009000000000000001 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A100000A000000000000001 /* Preview Assets.xcassets */; };
-		A100000B000000000000001 /* ARViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100000C000000000000001 /* ARViewModel.swift */; };
-		A100000D000000000000001 /* FocusEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100000E000000000000001 /* FocusEntity.swift */; };
+		A100000B000000000000001 /* SpatialViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100000C000000000000001 /* SpatialViewModel.swift */; };
+		A100000D000000000000001 /* PlacementIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100000E000000000000001 /* PlacementIndicator.swift */; };
 		A100000F000000000000001 /* ObjectPlacementManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000010000000000000001 /* ObjectPlacementManager.swift */; };
 		A1000011000000000000001 /* PersistenceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000012000000000000001 /* PersistenceManager.swift */; };
 		A1000013000000000000001 /* GestureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000014000000000000001 /* GestureManager.swift */; };
@@ -27,8 +27,8 @@
 		A1000006000000000000001 /* ImmersiveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImmersiveView.swift; sourceTree = "<group>"; };
 		A1000008000000000000001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A100000A000000000000001 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
-		A100000C000000000000001 /* ARViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARViewModel.swift; sourceTree = "<group>"; };
-		A100000E000000000000001 /* FocusEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusEntity.swift; sourceTree = "<group>"; };
+		A100000C000000000000001 /* SpatialViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpatialViewModel.swift; sourceTree = "<group>"; };
+		A100000E000000000000001 /* PlacementIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlacementIndicator.swift; sourceTree = "<group>"; };
 		A1000010000000000000001 /* ObjectPlacementManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObjectPlacementManager.swift; sourceTree = "<group>"; };
 		A1000012000000000000001 /* PersistenceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceManager.swift; sourceTree = "<group>"; };
 		A1000014000000000000001 /* GestureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestureManager.swift; sourceTree = "<group>"; };
@@ -91,7 +91,7 @@
 		A1000017000000000000001 /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
-				A100000C000000000000001 /* ARViewModel.swift */,
+				A100000C000000000000001 /* SpatialViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -117,7 +117,7 @@
 		A100001B000000000000001 /* Utils */ = {
 			isa = PBXGroup;
 			children = (
-				A100000E000000000000001 /* FocusEntity.swift */,
+				A100000E000000000000001 /* PlacementIndicator.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -195,8 +195,8 @@
 				A1000001000000000000001 /* PlaceObjectsApp.swift in Sources */,
 				A1000003000000000000001 /* ContentView.swift in Sources */,
 				A1000005000000000000001 /* ImmersiveView.swift in Sources */,
-				A100000B000000000000001 /* ARViewModel.swift in Sources */,
-				A100000D000000000000001 /* FocusEntity.swift in Sources */,
+				A100000B000000000000001 /* SpatialViewModel.swift in Sources */,
+				A100000D000000000000001 /* PlacementIndicator.swift in Sources */,
 				A100000F000000000000001 /* ObjectPlacementManager.swift in Sources */,
 				A1000011000000000000001 /* PersistenceManager.swift in Sources */,
 				A1000013000000000000001 /* GestureManager.swift in Sources */,

@@ -59,7 +59,8 @@ struct ImmersiveView: View {
             DragGesture()
                 .targetedToAnyEntity()
                 .onChanged { value in
-                    handleDrag(value: value.translation3D)
+                    let translation = value.translation3D
+                    handleDrag(value: Size3D(width: translation.x, height: translation.y, depth: translation.z))
                 }
                 .onEnded { _ in
                     viewModel.gestureManager.endDrag()
@@ -118,11 +119,22 @@ struct ImmersiveView: View {
     private func findObjectId(for entity: Entity) -> UUID? {
         // Search through loaded entities to find matching ID
         for (id, loadedEntity) in viewModel.objectPlacementManager.loadedEntities {
-            if loadedEntity == entity || entity.isDescendant(of: loadedEntity) {
+            if loadedEntity == entity || isDescendant(entity, of: loadedEntity) {
                 return id
             }
         }
         return nil
+    }
+    
+    private func isDescendant(_ child: Entity, of parent: Entity) -> Bool {
+        var current: Entity? = child.parent
+        while let currentEntity = current {
+            if currentEntity == parent {
+                return true
+            }
+            current = currentEntity.parent
+        }
+        return false
     }
 }
 

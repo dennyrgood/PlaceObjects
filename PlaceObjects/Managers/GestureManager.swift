@@ -10,6 +10,7 @@ import RealityKit
 import SwiftUI
 
 /// Manages visionOS spatial gestures for object manipulation
+@MainActor
 class GestureManager: ObservableObject {
     
     // MARK: - Constants
