@@ -61,10 +61,12 @@ class ObjectPlacementManager: ObservableObject {
                     let entity = try await Entity(contentsOf: url)
                     entity.name = name
                     
-                    // Scale up the entity to make it visible (USDZ models are often in meters)
-                    entity.scale = SIMD3<Float>(repeating: 0.5) // 50cm scale
+                    // Scale based on model - RV equipment is usually quite large
+                    // Start with a smaller scale (20cm) to fit in view
+                    entity.scale = SIMD3<Float>(repeating: 0.2) // 20cm scale - adjustable with pinch gesture
                     
                     print("✅ Loaded entity: \(name), children: \(entity.children.count), scale: \(entity.scale)")
+                    print("📏 Original bounds before scaling: \(entity.visualBounds(relativeTo: nil).extents)")
                     
                     // Add collision and input components for interaction
                     entity.generateCollisionShapes(recursive: true)
@@ -131,6 +133,14 @@ class ObjectPlacementManager: ObservableObject {
         
         // Apply transform
         entity.transform = transform
+        
+        // Place further away if models are large (3 meters instead of 1.5)
+        if transform.translation.z > -2.0 {
+            var newTransform = transform
+            newTransform.translation.z = -3.0 // 3 meters away
+            entity.transform = newTransform
+            print("📏 Adjusted position further away to: \(newTransform.translation)")
+        }
         
         // Add collision for interaction
         if let modelEntity = entity as? ModelEntity {
