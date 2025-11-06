@@ -1,8 +1,13 @@
 {
-  "images" : [
+  "layers" : [
     {
-      "filename" : "AppIcon.png",
-      "idiom" : "reality"
+      "filename" : "Front.solidimagestacklayer"
+    },
+    {
+      "filename" : "Middle.solidimagestacklayer"
+    },
+    {
+      "filename" : "Back.solidimagestacklayer"
     }
   ],
   "info" : {
