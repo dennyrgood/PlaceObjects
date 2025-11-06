@@ -1,18 +1,17 @@
 //
-//  ARViewModel.swift
+//  SpatialViewModel.swift
 //  PlaceObjects
 //
-//  Main view model coordinating AR functionality and object management
+//  Main view model coordinating immersive space lifecycle and manager interactions (visionOS native)
 //
 
 import Foundation
 import RealityKit
-import ARKit
 import SwiftUI
 
-/// Main view model coordinating AR functionality
+/// Main view model coordinating spatial functionality for visionOS
 @MainActor
-class ARViewModel: ObservableObject {
+class SpatialViewModel: ObservableObject {
     
     @Published var isImmersiveSpaceActive = false
     @Published var placementMode = false
@@ -25,70 +24,62 @@ class ARViewModel: ObservableObject {
     let objectPlacementManager = ObjectPlacementManager()
     lazy var gestureManager = GestureManager(objectManager: objectPlacementManager)
     
-    // AR Session
-    private var arView: ARView?
-    private var focusEntity: FocusEntity?
-    private var raycastQuery: ARRaycastQuery?
+    // Scene references
+    private var rootEntity: Entity?
+    private var placementIndicator: PlacementIndicator?
+    
+    // Placement state
+    private var currentPlacementPosition: SIMD3<Float>?
     
     init() {
-        // Setup object placement manager reference
+        // Setup gesture manager reference
         gestureManager.objectManager = objectPlacementManager
     }
     
-    // MARK: - AR Setup
+    // MARK: - Scene Setup
     
-    /// Initialize AR session with the ARView
-    func setupARSession(arView: ARView) {
-        self.arView = arView
-        objectPlacementManager.setARView(arView)
+    /// Initialize the spatial scene with RealityView root entity
+    func setupScene(rootEntity: Entity) {
+        self.rootEntity = rootEntity
+        objectPlacementManager.setRootEntity(rootEntity)
         
-        // Setup AR configuration
-        let configuration = ARWorldTrackingConfiguration()
-        configuration.planeDetection = [.horizontal, .vertical]
-        configuration.environmentTexturing = .automatic
-        
-        if ARWorldTrackingConfiguration.supportsSceneReconstruction(.mesh) {
-            configuration.sceneReconstruction = .mesh
-        }
-        
-        arView.session.run(configuration)
-        
-        // Setup focus entity
-        setupFocusEntity(in: arView)
+        // Setup placement indicator
+        setupPlacementIndicator(in: rootEntity)
         
         // Load persisted objects
-        loadPersistedObjects()
-    }
-    
-    private func setupFocusEntity(in arView: ARView) {
-        focusEntity = FocusEntity()
-        if let focus = focusEntity {
-            arView.scene.addAnchor(focus)
+        Task {
+            await loadPersistedObjects()
         }
     }
     
-    /// Update focus entity based on camera raycast
-    func updateFocusEntity() {
-        guard let arView = arView,
-              let focusEntity = focusEntity else {
-            return
+    private func setupPlacementIndicator(in root: Entity) {
+        placementIndicator = PlacementIndicator()
+        if let indicator = placementIndicator {
+            root.addChild(indicator)
         }
+    }
+    
+    /// Update placement indicator position based on user's gaze or spatial query
+    /// This simulates surface detection using collision-based queries
+    func updatePlacementIndicator(cameraTransform: Transform) {
+        guard let indicator = placementIndicator else { return }
         
         guard placementMode else {
-            focusEntity.hide()
+            indicator.hide()
             return
         }
         
-        // Perform raycast from center of screen
-        let center = CGPoint(x: arView.bounds.midX, y: arView.bounds.midY)
+        // Simple forward placement at a fixed distance (1.5 meters in front of user)
+        // In a full implementation, this would use collision queries to find surfaces
+        let forwardDirection = cameraTransform.rotation.act(SIMD3<Float>(0, 0, -1))
+        let placementDistance: Float = 1.5
+        let targetPosition = cameraTransform.translation + forwardDirection * placementDistance
         
-        let results = arView.raycast(from: center, allowing: .estimatedPlane, alignment: .any)
+        // Adjust Y position to be slightly below eye level for comfortable placement
+        let adjustedPosition = SIMD3<Float>(targetPosition.x, targetPosition.y - 0.3, targetPosition.z)
         
-        if let result = results.first {
-            focusEntity.update(with: result, isTracking: true)
-        } else {
-            focusEntity.update(with: nil, isTracking: false)
-        }
+        currentPlacementPosition = adjustedPosition
+        indicator.update(position: adjustedPosition, normal: SIMD3<Float>(0, 1, 0), isTracking: true)
     }
     
     // MARK: - Object Placement
@@ -97,24 +88,26 @@ class ARViewModel: ObservableObject {
     func startPlacement(modelName: String) {
         selectedModelName = modelName
         placementMode = true
-        focusEntity?.show()
+        placementIndicator?.show()
         statusMessage = "Tap to place \(modelName)"
     }
     
-    /// Place object at current focus entity location
+    /// Place object at current indicator location
     func placeObject() {
         guard let modelName = selectedModelName,
-              let focusEntity = focusEntity,
-              focusEntity.isEnabled else {
+              let indicator = placementIndicator,
+              indicator.isTracking,
+              let position = currentPlacementPosition else {
             return
         }
         
-        let transform = focusEntity.getCurrentTransform()
-        let transformData = TransformData(
-            position: transform.translation,
-            rotation: transform.rotation,
-            scale: transform.scale
+        let transform = Transform(
+            scale: SIMD3<Float>(repeating: 1.0),
+            rotation: simd_quatf(angle: 0, axis: [0, 1, 0]),
+            translation: position
         )
+        
+        let transformData = TransformData(from: transform)
         
         let placedObject = PlacedObject(
             name: modelName,
@@ -126,23 +119,22 @@ class ARViewModel: ObservableObject {
         persistenceManager.addObject(placedObject)
         
         // Place in scene
-        objectPlacementManager.placeObject(
-            modelName: modelName,
-            at: transform,
-            placedObject: placedObject
-        )
+        Task {
+            await objectPlacementManager.placeObject(
+                modelName: modelName,
+                at: transform,
+                placedObject: placedObject
+            )
+        }
         
         statusMessage = "Object placed successfully"
-        
-        // Continue placement mode for multiple objects
-        // User can tap cancel to exit
     }
     
     /// Cancel placement mode
     func cancelPlacement() {
         placementMode = false
         selectedModelName = nil
-        focusEntity?.hide()
+        placementIndicator?.hide()
         statusMessage = "Ready to place objects"
     }
     
@@ -185,11 +177,7 @@ class ARViewModel: ObservableObject {
         }
         
         let transform = entity.transform
-        let transformData = TransformData(
-            position: transform.translation,
-            rotation: transform.rotation,
-            scale: transform.scale
-        )
+        let transformData = TransformData(from: transform)
         
         placedObject.updateTransform(transformData)
         persistenceManager.updateObject(placedObject)
@@ -197,11 +185,11 @@ class ARViewModel: ObservableObject {
     
     // MARK: - Persistence
     
-    private func loadPersistedObjects() {
+    private func loadPersistedObjects() async {
         // Load all persisted objects and place them in the scene
         for placedObject in persistenceManager.placedObjects {
             let transform = placedObject.transform.toTransform()
-            objectPlacementManager.placeObject(
+            await objectPlacementManager.placeObject(
                 modelName: placedObject.modelName,
                 at: transform,
                 placedObject: placedObject
@@ -233,8 +221,7 @@ class ARViewModel: ObservableObject {
     // MARK: - Cleanup
     
     func cleanup() {
-        arView?.session.pause()
-        focusEntity?.removeFromParent()
-        focusEntity = nil
+        placementIndicator?.removeFromParent()
+        placementIndicator = nil
     }
 }

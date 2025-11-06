@@ -2,30 +2,31 @@
 //  ObjectPlacementManager.swift
 //  PlaceObjects
 //
-//  Manages USDZ object loading, placement, and manipulation in the AR scene
+//  Manages USDZ object loading, placement, and manipulation using RealityKit (visionOS native)
 //
 
 import Foundation
 import RealityKit
-import ARKit
 
-/// Manages the placement and manipulation of USDZ objects in the AR scene
+/// Manages the placement and manipulation of USDZ objects in the spatial scene
+@MainActor
 class ObjectPlacementManager: ObservableObject {
     
     @Published var loadedEntities: [UUID: Entity] = [:]
     @Published var selectedObjectId: UUID?
     @Published var availableModels: [String] = []
     
-    private var arView: ARView?
+    // Scene reference for adding entities
+    private var rootEntity: Entity?
     
     init() {
         // Initialize with some default USDZ models
         setupAvailableModels()
     }
     
-    /// Set the AR view reference
-    func setARView(_ arView: ARView) {
-        self.arView = arView
+    /// Set the root entity reference for the scene
+    func setRootEntity(_ entity: Entity) {
+        self.rootEntity = entity
     }
     
     private func setupAvailableModels() {
@@ -42,45 +43,22 @@ class ObjectPlacementManager: ObservableObject {
     // MARK: - Object Loading
     
     /// Load a USDZ model asynchronously
-    func loadModel(named name: String, completion: @escaping (Result<Entity, Error>) -> Void) {
+    func loadModel(named name: String) async throws -> Entity {
         // Try to load from bundle or Reality Composer Pro
-        Task {
-            do {
-                // First try to load from app bundle
-                do {
-                    let entity = try await Entity(named: name)
-                    await MainActor.run {
-                        completion(.success(entity))
-                    }
-                    return
-                } catch {
-                    print("Could not load model '\(name)' from bundle: \(error.localizedDescription)")
-                }
-                
-                // If not in bundle, create a simple placeholder
-                print("Using placeholder for model '\(name)'")
-                let entity = await createPlaceholderEntity(name: name)
-                await MainActor.run {
-                    completion(.success(entity))
-                }
-            }
+        do {
+            let entity = try await Entity(named: name)
+            return entity
+        } catch {
+            print("Could not load model '\(name)' from bundle: \(error.localizedDescription)")
+            // If not in bundle, create a simple placeholder
+            print("Using placeholder for model '\(name)'")
+            return await createPlaceholderEntity(name: name)
         }
     }
     
     /// Load a USDZ model from a file URL
-    func loadModel(from url: URL, completion: @escaping (Result<Entity, Error>) -> Void) {
-        Task {
-            do {
-                let entity = try await Entity.load(contentsOf: url)
-                await MainActor.run {
-                    completion(.success(entity))
-                }
-            } catch {
-                await MainActor.run {
-                    completion(.failure(error))
-                }
-            }
-        }
+    func loadModel(from url: URL) async throws -> Entity {
+        return try await Entity.load(contentsOf: url)
     }
     
     private func createPlaceholderEntity(name: String) async -> Entity {
@@ -102,33 +80,38 @@ class ObjectPlacementManager: ObservableObject {
     // MARK: - Object Placement
     
     /// Place an object in the scene at the specified transform
-    func placeObject(modelName: String, at transform: Transform, placedObject: PlacedObject) {
-        loadModel(named: modelName) { [weak self] result in
-            switch result {
-            case .success(let entity):
-                self?.addEntityToScene(entity: entity, transform: transform, id: placedObject.id)
-            case .failure(let error):
-                print("Failed to load model: \(error)")
-            }
+    func placeObject(modelName: String, at transform: Transform, placedObject: PlacedObject) async {
+        do {
+            let entity = try await loadModel(named: modelName)
+            await addEntityToScene(entity: entity, transform: transform, id: placedObject.id)
+        } catch {
+            print("Failed to load model: \(error)")
         }
     }
     
-    private func addEntityToScene(entity: Entity, transform: Transform, id: UUID) {
-        guard let arView = arView else { return }
+    private func addEntityToScene(entity: Entity, transform: Transform, id: UUID) async {
+        guard let root = rootEntity else {
+            print("Warning: No root entity set")
+            return
+        }
         
         // Apply transform
         entity.transform = transform
         
         // Add collision for interaction
         if let modelEntity = entity as? ModelEntity {
-            modelEntity.collision = CollisionComponent(shapes: [.generateBox(size: [0.2, 0.2, 0.2])])
+            // Generate collision shape based on model bounds
+            let bounds = modelEntity.visualBounds(relativeTo: nil)
+            let size = bounds.extents
+            modelEntity.collision = CollisionComponent(shapes: [.generateBox(size: size)])
             modelEntity.components.set(InputTargetComponent())
         }
         
         // Add to scene
-        let anchor = AnchorEntity(world: transform.translation)
+        let anchor = AnchorEntity()
+        anchor.position = transform.translation
         anchor.addChild(entity)
-        arView.scene.addAnchor(anchor)
+        root.addChild(anchor)
         
         // Store reference
         loadedEntities[id] = entity
@@ -181,28 +164,34 @@ class ObjectPlacementManager: ObservableObject {
     
     // MARK: - Object Manipulation
     
-    /// Apply scale to selected object
+    /// Apply scale to selected object with bounds clamping
     func scaleSelectedObject(by factor: Float) {
         guard let id = selectedObjectId,
               let entity = loadedEntities[id] else { return }
         
         var transform = entity.transform
-        transform.scale *= factor
+        let newScale = transform.scale * factor
+        
+        // Clamp scale to reasonable bounds (0.1x - 5.0x)
+        transform.scale.x = max(GestureManager.minScale, min(GestureManager.maxScale, newScale.x))
+        transform.scale.y = max(GestureManager.minScale, min(GestureManager.maxScale, newScale.y))
+        transform.scale.z = max(GestureManager.minScale, min(GestureManager.maxScale, newScale.z))
+        
         entity.transform = transform
     }
     
-    /// Rotate selected object
-    func rotateSelectedObject(by angle: Float, axis: SIMD3<Float>) {
+    /// Rotate selected object around Y-axis
+    func rotateSelectedObject(by angle: Float) {
         guard let id = selectedObjectId,
               let entity = loadedEntities[id] else { return }
         
-        let rotation = simd_quatf(angle: angle, axis: axis)
+        let rotation = simd_quatf(angle: angle, axis: [0, 1, 0])
         var transform = entity.transform
-        transform.rotation *= rotation
+        transform.rotation = transform.rotation * rotation
         entity.transform = transform
     }
     
-    /// Move selected object
+    /// Move selected object to new position
     func moveSelectedObject(to position: SIMD3<Float>) {
         guard let id = selectedObjectId,
               let entity = loadedEntities[id] else { return }

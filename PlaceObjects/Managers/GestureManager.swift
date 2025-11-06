@@ -2,14 +2,14 @@
 //  GestureManager.swift
 //  PlaceObjects
 //
-//  Manages gesture interactions for rotating, scaling, and moving objects
+//  Manages visionOS spatial gesture interactions for rotating, scaling, and moving objects
 //
 
 import Foundation
 import RealityKit
 import SwiftUI
 
-/// Manages gestures for object manipulation in AR
+/// Manages visionOS spatial gestures for object manipulation
 class GestureManager: ObservableObject {
     
     // MARK: - Constants

@@ -9,7 +9,7 @@ import SwiftUI
 import RealityKit
 
 struct ContentView: View {
-    @EnvironmentObject var viewModel: ARViewModel
+    @EnvironmentObject var viewModel: SpatialViewModel
     @Environment(\.openImmersiveSpace) var openImmersiveSpace
     @Environment(\.dismissImmersiveSpace) var dismissImmersiveSpace
     
@@ -39,7 +39,7 @@ struct ContentView: View {
                             viewModel.isImmersiveSpaceActive = true
                         }
                     } label: {
-                        Label("Enter AR Mode", systemImage: "arkit")
+                        Label("Enter Spatial Mode", systemImage: "cube.transparent")
                             .font(.title2)
                             .padding()
                             .frame(maxWidth: .infinity)
@@ -111,7 +111,7 @@ struct ContentView: View {
                                 viewModel.isImmersiveSpaceActive = false
                             }
                         } label: {
-                            Label("Exit AR Mode", systemImage: "xmark.circle")
+                            Label("Exit Spatial Mode", systemImage: "xmark.circle")
                                 .font(.title3)
                                 .padding()
                                 .frame(maxWidth: .infinity)
@@ -175,7 +175,7 @@ struct ContentView: View {
 // MARK: - Object Picker View
 
 struct ObjectPickerView: View {
-    @ObservedObject var viewModel: ARViewModel
+    @ObservedObject var viewModel: SpatialViewModel
     @Environment(\.dismiss) var dismiss
     
     var body: some View {
@@ -210,7 +210,7 @@ struct ObjectPickerView: View {
 // MARK: - Settings View
 
 struct SettingsView: View {
-    @ObservedObject var viewModel: ARViewModel
+    @ObservedObject var viewModel: SpatialViewModel
     @Environment(\.dismiss) var dismiss
     
     var body: some View {
@@ -280,5 +280,5 @@ struct SettingsView: View {
 
 #Preview {
     ContentView()
-        .environmentObject(ARViewModel())
+        .environmentObject(SpatialViewModel())
 }
