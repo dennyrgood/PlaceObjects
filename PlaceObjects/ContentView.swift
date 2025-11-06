@@ -234,7 +234,7 @@ struct SettingsView: View {
                         case .success:
                             Text("Synced")
                                 .foregroundColor(.green)
-                        case .failed(let error):
+                        case .failed(_):
                             Text("Failed")
                                 .foregroundColor(.red)
                         }

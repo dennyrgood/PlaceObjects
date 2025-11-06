@@ -130,6 +130,8 @@ class PersistenceManager: ObservableObject {
                     self?.syncFromiCloud()
                 case .noAccount, .restricted, .couldNotDetermine:
                     self?.iCloudSyncEnabled = false
+                case .temporarilyUnavailable:
+                    self?.iCloudSyncEnabled = false
                 @unknown default:
                     self?.iCloudSyncEnabled = false
                 }
@@ -166,32 +168,32 @@ class PersistenceManager: ObservableObject {
         
         let query = CKQuery(recordType: "PlacedObject", predicate: NSPredicate(value: true))
         
-        database.perform(query, inZoneWith: nil) { [weak self] records, error in
+        database.fetch(withQuery: query, inZoneWith: nil, desiredKeys: nil, resultsLimit: CKQueryOperation.maximumResults) { [weak self] result in
             DispatchQueue.main.async {
-                if let error = error {
+                switch result {
+                case .success(let matchResults):
+                    let records = matchResults.matchResults.compactMap { try? $0.1.get() }
+                    self?.processRecordsFromiCloud(records)
+                    self?.syncStatus = .success
+                case .failure(let error):
                     self?.syncStatus = .failed(error)
                     print("Failed to sync from iCloud: \(error)")
-                    return
                 }
-                
-                guard let records = records else {
-                    self?.syncStatus = .success
-                    return
-                }
-                
-                var syncedObjects: [PlacedObject] = []
-                for record in records {
-                    if let data = record["data"] as? Data,
-                       let object = try? JSONDecoder().decode(PlacedObject.self, from: data) {
-                        syncedObjects.append(object)
-                    }
-                }
-                
-                // Merge with local objects (prefer newer versions)
-                self?.mergeObjects(syncedObjects)
-                self?.syncStatus = .success
             }
         }
+    }
+    
+    private func processRecordsFromiCloud(_ records: [CKRecord]) {
+        var syncedObjects: [PlacedObject] = []
+        for record in records {
+            if let data = record["data"] as? Data,
+               let object = try? JSONDecoder().decode(PlacedObject.self, from: data) {
+                syncedObjects.append(object)
+            }
+        }
+        
+        // Merge with local objects (prefer newer versions)
+        mergeObjects(syncedObjects)
     }
     
     private func deleteFromiCloud(_ object: PlacedObject) {
@@ -207,9 +209,10 @@ class PersistenceManager: ObservableObject {
     private func clearFromiCloud() {
         let query = CKQuery(recordType: "PlacedObject", predicate: NSPredicate(value: true))
         
-        database.perform(query, inZoneWith: nil) { [weak self] records, error in
-            guard let records = records, error == nil else { return }
+        database.fetch(withQuery: query, inZoneWith: nil, desiredKeys: nil, resultsLimit: CKQueryOperation.maximumResults) { [weak self] result in
+            guard case .success(let matchResults) = result else { return }
             
+            let records = matchResults.matchResults.compactMap { try? $0.1.get() }
             let recordIDs = records.map { $0.recordID }
             let deleteOperation = CKModifyRecordsOperation(recordsToSave: nil, recordIDsToDelete: recordIDs)
             
