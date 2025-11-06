@@ -45,38 +45,44 @@ class ObjectPlacementManager: ObservableObject {
     /// Load a USDZ model asynchronously
     func loadModel(named name: String) async throws -> Entity {
         print("🔄 Loading model: \(name)")
-        // Try to load from bundle
-        do {
-            // First try to load from Models/USDZ directory
-            if let url = Bundle.main.url(forResource: name, withExtension: "usdz", subdirectory: "Models/USDZ") {
+        
+        // Try multiple paths to find the USDZ file
+        let possiblePaths = [
+            "Models/USDZ",
+            "USDZ",
+            "",
+            nil
+        ]
+        
+        for subdir in possiblePaths {
+            if let url = Bundle.main.url(forResource: name, withExtension: "usdz", subdirectory: subdir) {
                 print("✅ Found USDZ file at: \(url.path)")
-                let entity = try await Entity(contentsOf: url)
-                entity.name = name
-                
-                print("✅ Loaded entity: \(name), children: \(entity.children.count)")
-                
-                // Add collision and input components for interaction
-                entity.generateCollisionShapes(recursive: true)
-                for descendant in entity.children {
-                    descendant.components.set(InputTargetComponent())
+                do {
+                    let entity = try await Entity(contentsOf: url)
+                    entity.name = name
+                    
+                    // Scale up the entity to make it visible (USDZ models are often in meters)
+                    entity.scale = SIMD3<Float>(repeating: 0.5) // 50cm scale
+                    
+                    print("✅ Loaded entity: \(name), children: \(entity.children.count), scale: \(entity.scale)")
+                    
+                    // Add collision and input components for interaction
+                    entity.generateCollisionShapes(recursive: true)
+                    for descendant in entity.children {
+                        descendant.components.set(InputTargetComponent())
+                    }
+                    entity.components.set(InputTargetComponent())
+                    
+                    return entity
+                } catch {
+                    print("❌ Failed to load from \(url.path): \(error.localizedDescription)")
                 }
-                entity.components.set(InputTargetComponent())
-                
-                return entity
-            } else {
-                print("❌ Could not find USDZ file for: \(name) in Models/USDZ")
             }
-            
-            // Fallback: try to load by name
-            print("🔄 Trying to load by name: \(name)")
-            let entity = try await Entity(named: name)
-            return entity
-        } catch {
-            print("❌ Could not load model '\(name)': \(error.localizedDescription)")
-            // If not in bundle, create a simple placeholder
-            print("⚠️ Using placeholder for model '\(name)'")
-            return await createPlaceholderEntity(name: name)
         }
+        
+        print("❌ Could not find USDZ file for: \(name) in any location")
+        print("⚠️ Using blue cube placeholder instead")
+        return await createPlaceholderEntity(name: name)
     }
     
     /// Load a USDZ model from a file URL
