@@ -30,13 +30,13 @@ class ObjectPlacementManager: ObservableObject {
     }
     
     private func setupAvailableModels() {
-        // Add default model names that can be loaded
+        // Add available USDZ model names from bundle
         availableModels = [
-            "toy_biplane",
-            "toy_car",
-            "toy_robot_vintage",
-            "toy_drummer",
-            "fender_stratocaster"
+            "pump",
+            "tank",
+            "porta_potti",
+            "oblong_sink",
+            "corner_sink"
         ]
     }
     
@@ -44,12 +44,28 @@ class ObjectPlacementManager: ObservableObject {
     
     /// Load a USDZ model asynchronously
     func loadModel(named name: String) async throws -> Entity {
-        // Try to load from bundle or Reality Composer Pro
+        // Try to load from bundle
         do {
+            // First try to load from Models/USDZ directory
+            if let url = Bundle.main.url(forResource: name, withExtension: "usdz", subdirectory: "Models/USDZ") {
+                let entity = try await Entity(contentsOf: url)
+                entity.name = name
+                
+                // Add collision and input components for interaction
+                entity.generateCollisionShapes(recursive: true)
+                for descendant in entity.children {
+                    descendant.components.set(InputTargetComponent())
+                }
+                entity.components.set(InputTargetComponent())
+                
+                return entity
+            }
+            
+            // Fallback: try to load by name
             let entity = try await Entity(named: name)
             return entity
         } catch {
-            print("Could not load model '\(name)' from bundle: \(error.localizedDescription)")
+            print("Could not load model '\(name)': \(error.localizedDescription)")
             // If not in bundle, create a simple placeholder
             print("Using placeholder for model '\(name)'")
             return await createPlaceholderEntity(name: name)

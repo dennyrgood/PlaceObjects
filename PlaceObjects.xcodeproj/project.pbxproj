@@ -7,6 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		693BE60A2EBCED25000CBBF8 /* pump.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 693BE6082EBCED25000CBBF8 /* pump.usdz */; };
+		693BE60B2EBCED25000CBBF8 /* porta_potti.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 693BE6072EBCED25000CBBF8 /* porta_potti.usdz */; };
+		693BE60C2EBCED25000CBBF8 /* oblong_sink.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 693BE6062EBCED25000CBBF8 /* oblong_sink.usdz */; };
+		693BE60D2EBCED25000CBBF8 /* tank.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 693BE6092EBCED25000CBBF8 /* tank.usdz */; };
+		693BE60E2EBCED25000CBBF8 /* corner_sink.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 693BE6052EBCED25000CBBF8 /* corner_sink.usdz */; };
 		A1000001000000000000001 /* PlaceObjectsApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000002000000000000001 /* PlaceObjectsApp.swift */; };
 		A1000003000000000000001 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000004000000000000001 /* ContentView.swift */; };
 		A1000005000000000000001 /* ImmersiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000006000000000000001 /* ImmersiveView.swift */; };
@@ -21,6 +26,11 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		693BE6052EBCED25000CBBF8 /* corner_sink.usdz */ = {isa = PBXFileReference; lastKnownFileType = file; path = corner_sink.usdz; sourceTree = "<group>"; };
+		693BE6062EBCED25000CBBF8 /* oblong_sink.usdz */ = {isa = PBXFileReference; lastKnownFileType = file; path = oblong_sink.usdz; sourceTree = "<group>"; };
+		693BE6072EBCED25000CBBF8 /* porta_potti.usdz */ = {isa = PBXFileReference; lastKnownFileType = file; path = porta_potti.usdz; sourceTree = "<group>"; };
+		693BE6082EBCED25000CBBF8 /* pump.usdz */ = {isa = PBXFileReference; lastKnownFileType = file; path = pump.usdz; sourceTree = "<group>"; };
+		693BE6092EBCED25000CBBF8 /* tank.usdz */ = {isa = PBXFileReference; lastKnownFileType = file; path = tank.usdz; sourceTree = "<group>"; };
 		A1000000000000000000001 /* PlaceObjects.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PlaceObjects.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1000002000000000000001 /* PlaceObjectsApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceObjectsApp.swift; sourceTree = "<group>"; };
 		A1000004000000000000001 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -66,6 +76,11 @@
 		A1000001000000000000002 /* PlaceObjects */ = {
 			isa = PBXGroup;
 			children = (
+				693BE6052EBCED25000CBBF8 /* corner_sink.usdz */,
+				693BE6062EBCED25000CBBF8 /* oblong_sink.usdz */,
+				693BE6072EBCED25000CBBF8 /* porta_potti.usdz */,
+				693BE6082EBCED25000CBBF8 /* pump.usdz */,
+				693BE6092EBCED25000CBBF8 /* tank.usdz */,
 				A1000018000000000000001 /* Info.plist */,
 				A1000002000000000000001 /* PlaceObjectsApp.swift */,
 				A1000004000000000000001 /* ContentView.swift */,
@@ -180,6 +195,11 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				693BE60A2EBCED25000CBBF8 /* pump.usdz in Resources */,
+				693BE60B2EBCED25000CBBF8 /* porta_potti.usdz in Resources */,
+				693BE60C2EBCED25000CBBF8 /* oblong_sink.usdz in Resources */,
+				693BE60D2EBCED25000CBBF8 /* tank.usdz in Resources */,
+				693BE60E2EBCED25000CBBF8 /* corner_sink.usdz in Resources */,
 				A1000009000000000000001 /* Preview Assets.xcassets in Resources */,
 				A1000007000000000000001 /* Assets.xcassets in Resources */,
 			);
