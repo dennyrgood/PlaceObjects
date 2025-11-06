@@ -58,7 +58,7 @@ class ObjectPlacementManager: ObservableObject {
     
     /// Load a USDZ model from a file URL
     func loadModel(from url: URL) async throws -> Entity {
-        return try await Entity.load(contentsOf: url)
+        return try await Entity(contentsOf: url)
     }
     
     private func createPlaceholderEntity(name: String) async -> Entity {
