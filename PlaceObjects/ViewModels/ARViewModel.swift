@@ -70,9 +70,12 @@ class ARViewModel: ObservableObject {
     /// Update focus entity based on camera raycast
     func updateFocusEntity() {
         guard let arView = arView,
-              let focusEntity = focusEntity,
-              placementMode else {
-            focusEntity?.hide()
+              let focusEntity = focusEntity else {
+            return
+        }
+        
+        guard placementMode else {
+            focusEntity.hide()
             return
         }
         

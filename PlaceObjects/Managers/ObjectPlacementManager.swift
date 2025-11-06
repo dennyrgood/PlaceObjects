@@ -47,14 +47,18 @@ class ObjectPlacementManager: ObservableObject {
         Task {
             do {
                 // First try to load from app bundle
-                if let entity = try? await Entity(named: name) {
+                do {
+                    let entity = try await Entity(named: name)
                     await MainActor.run {
                         completion(.success(entity))
                     }
                     return
+                } catch {
+                    print("Could not load model '\(name)' from bundle: \(error.localizedDescription)")
                 }
                 
                 // If not in bundle, create a simple placeholder
+                print("Using placeholder for model '\(name)'")
                 let entity = await createPlaceholderEntity(name: name)
                 await MainActor.run {
                     completion(.success(entity))

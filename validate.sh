@@ -47,9 +47,9 @@ echo "✓ Found $swift_count Swift files"
 echo ""
 echo "✓ Checking Swift syntax patterns..."
 
-# Check for proper imports
-grep -r "import SwiftUI" PlaceObjects/*.swift > /dev/null && echo "  ✓ SwiftUI imports found"
-grep -r "import RealityKit" PlaceObjects/*.swift > /dev/null && echo "  ✓ RealityKit imports found"
+# Check for proper imports (recursively search all Swift files)
+grep -r "import SwiftUI" PlaceObjects --include="*.swift" > /dev/null && echo "  ✓ SwiftUI imports found"
+grep -r "import RealityKit" PlaceObjects --include="*.swift" > /dev/null && echo "  ✓ RealityKit imports found"
 
 # Check for proper struct/class declarations
 if grep -r "struct ContentView: View" PlaceObjects/ContentView.swift > /dev/null; then

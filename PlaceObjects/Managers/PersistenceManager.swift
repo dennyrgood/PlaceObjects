@@ -11,6 +11,13 @@ import CloudKit
 /// Manages persistence of placed objects with local and iCloud storage
 class PersistenceManager: ObservableObject {
     
+    // MARK: - Constants
+    
+    /// CloudKit container identifier - can be configured for different environments
+    static let cloudKitContainerIdentifier = "iCloud.com.placeobjects.app"
+    
+    // MARK: - Published Properties
+    
     @Published var placedObjects: [PlacedObject] = []
     @Published var iCloudSyncEnabled: Bool = false
     @Published var syncStatus: SyncStatus = .idle
@@ -27,8 +34,8 @@ class PersistenceManager: ObservableObject {
     }
     
     init() {
-        // Initialize CloudKit container
-        self.container = CKContainer(identifier: "iCloud.com.placeobjects.app")
+        // Initialize CloudKit container using configurable identifier
+        self.container = CKContainer(identifier: Self.cloudKitContainerIdentifier)
         self.database = container.privateCloudDatabase
         
         // Load from local storage

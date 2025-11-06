@@ -12,6 +12,16 @@ import SwiftUI
 /// Manages gestures for object manipulation in AR
 class GestureManager: ObservableObject {
     
+    // MARK: - Constants
+    
+    /// Minimum scale factor to prevent objects from becoming too small
+    static let minScale: Float = 0.1
+    
+    /// Maximum scale factor to prevent objects from becoming too large
+    static let maxScale: Float = 5.0
+    
+    // MARK: - Published Properties
+    
     @Published var isGestureActive = false
     
     private var initialScale: SIMD3<Float> = [1, 1, 1]
@@ -49,13 +59,10 @@ class GestureManager: ObservableObject {
         let newScale = initialScale * magnification
         var transform = entity.transform
         
-        // Clamp scale to reasonable bounds
-        let minScale: Float = 0.1
-        let maxScale: Float = 5.0
-        
-        transform.scale.x = max(minScale, min(maxScale, newScale.x))
-        transform.scale.y = max(minScale, min(maxScale, newScale.y))
-        transform.scale.z = max(minScale, min(maxScale, newScale.z))
+        // Clamp scale to reasonable bounds using class constants
+        transform.scale.x = max(Self.minScale, min(Self.maxScale, newScale.x))
+        transform.scale.y = max(Self.minScale, min(Self.maxScale, newScale.y))
+        transform.scale.z = max(Self.minScale, min(Self.maxScale, newScale.z))
         
         entity.transform = transform
     }

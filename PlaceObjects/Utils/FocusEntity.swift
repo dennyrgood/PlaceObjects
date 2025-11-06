@@ -17,15 +17,21 @@ class FocusEntity: Entity, HasAnchoring {
     private var isTracking = false
     
     required init() {
-        // Create pulse animation for the focus indicator
-        pulseAnimation = try! AnimationResource.generate(
+        // Create pulse animation for the focus indicator with fallback
+        if let animation = try? AnimationResource.generate(
             with: FromToByAnimation(
                 from: Transform(scale: SIMD3<Float>(repeating: 0.8)),
                 to: Transform(scale: SIMD3<Float>(repeating: 1.0)),
                 duration: 0.5,
                 bindTarget: .transform
             )
-        )
+        ) {
+            pulseAnimation = animation
+        } else {
+            // Fallback to a default animation if generation fails
+            pulseAnimation = AnimationResource()
+            print("Warning: Failed to generate focus entity animation, using default")
+        }
         
         super.init()
         
