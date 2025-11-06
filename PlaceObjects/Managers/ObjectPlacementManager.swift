@@ -44,12 +44,16 @@ class ObjectPlacementManager: ObservableObject {
     
     /// Load a USDZ model asynchronously
     func loadModel(named name: String) async throws -> Entity {
+        print("🔄 Loading model: \(name)")
         // Try to load from bundle
         do {
             // First try to load from Models/USDZ directory
             if let url = Bundle.main.url(forResource: name, withExtension: "usdz", subdirectory: "Models/USDZ") {
+                print("✅ Found USDZ file at: \(url.path)")
                 let entity = try await Entity(contentsOf: url)
                 entity.name = name
+                
+                print("✅ Loaded entity: \(name), children: \(entity.children.count)")
                 
                 // Add collision and input components for interaction
                 entity.generateCollisionShapes(recursive: true)
@@ -59,15 +63,18 @@ class ObjectPlacementManager: ObservableObject {
                 entity.components.set(InputTargetComponent())
                 
                 return entity
+            } else {
+                print("❌ Could not find USDZ file for: \(name) in Models/USDZ")
             }
             
             // Fallback: try to load by name
+            print("🔄 Trying to load by name: \(name)")
             let entity = try await Entity(named: name)
             return entity
         } catch {
-            print("Could not load model '\(name)': \(error.localizedDescription)")
+            print("❌ Could not load model '\(name)': \(error.localizedDescription)")
             // If not in bundle, create a simple placeholder
-            print("Using placeholder for model '\(name)'")
+            print("⚠️ Using placeholder for model '\(name)'")
             return await createPlaceholderEntity(name: name)
         }
     }
@@ -97,19 +104,24 @@ class ObjectPlacementManager: ObservableObject {
     
     /// Place an object in the scene at the specified transform
     func placeObject(modelName: String, at transform: Transform, placedObject: PlacedObject) async {
+        print("🎯 placeObject called for: \(modelName)")
         do {
             let entity = try await loadModel(named: modelName)
+            print("✅ Model loaded successfully: \(modelName)")
             await addEntityToScene(entity: entity, transform: transform, id: placedObject.id)
+            print("✅ Entity added to scene")
         } catch {
-            print("Failed to load model: \(error)")
+            print("❌ Failed to load model: \(error)")
         }
     }
     
     private func addEntityToScene(entity: Entity, transform: Transform, id: UUID) async {
         guard let root = rootEntity else {
-            print("Warning: No root entity set")
+            print("❌ Warning: No root entity set")
             return
         }
+        
+        print("📍 Adding entity to scene at position: \(transform.translation)")
         
         // Apply transform
         entity.transform = transform
@@ -119,15 +131,15 @@ class ObjectPlacementManager: ObservableObject {
             // Generate collision shape based on model bounds
             let bounds = modelEntity.visualBounds(relativeTo: nil)
             let size = bounds.extents
+            print("📦 Model bounds: \(size)")
             modelEntity.collision = CollisionComponent(shapes: [.generateBox(size: size)])
             modelEntity.components.set(InputTargetComponent())
         }
         
-        // Add to scene
-        let anchor = AnchorEntity()
-        anchor.position = transform.translation
-        anchor.addChild(entity)
-        root.addChild(anchor)
+        // Add to scene directly (no anchor needed in visionOS)
+        root.addChild(entity)
+        
+        print("✅ Entity added to root, total children: \(root.children.count)")
         
         // Store reference
         loadedEntities[id] = entity

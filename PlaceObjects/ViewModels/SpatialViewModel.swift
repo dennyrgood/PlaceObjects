@@ -94,12 +94,31 @@ class SpatialViewModel: ObservableObject {
     
     /// Place object at current indicator location
     func placeObject() {
-        guard let modelName = selectedModelName,
-              let indicator = placementIndicator,
-              indicator.isTracking,
-              let position = currentPlacementPosition else {
+        guard let modelName = selectedModelName else {
+            print("❌ No model name selected")
+            statusMessage = "Error: No model selected"
             return
         }
+        
+        guard let indicator = placementIndicator else {
+            print("❌ No placement indicator")
+            statusMessage = "Error: No placement indicator"
+            return
+        }
+        
+        guard indicator.isTracking else {
+            print("❌ Indicator not tracking")
+            statusMessage = "Error: Indicator not tracking"
+            return
+        }
+        
+        guard let position = currentPlacementPosition else {
+            print("❌ No placement position")
+            statusMessage = "Error: No placement position"
+            return
+        }
+        
+        print("✅ Placing object: \(modelName) at position: \(position)")
         
         let transform = Transform(
             scale: SIMD3<Float>(repeating: 1.0),
@@ -117,14 +136,17 @@ class SpatialViewModel: ObservableObject {
         
         // Add to persistence
         persistenceManager.addObject(placedObject)
+        print("✅ Added to persistence manager")
         
         // Place in scene
         Task {
+            print("🔄 Loading model from file...")
             await objectPlacementManager.placeObject(
                 modelName: modelName,
                 at: transform,
                 placedObject: placedObject
             )
+            print("✅ Object placement complete")
         }
         
         statusMessage = "Object placed successfully"
