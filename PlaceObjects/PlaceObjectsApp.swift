@@ -2,24 +2,24 @@
 //  PlaceObjectsApp.swift
 //  PlaceObjects
 //
-//  Main application entry point for the Vision Pro PlaceObjects app
+//  Main application entry point for the visionOS PlaceObjects app
 //
 
 import SwiftUI
 
 @main
 struct PlaceObjectsApp: App {
-    @StateObject private var arViewModel = ARViewModel()
+    @StateObject private var spatialViewModel = SpatialViewModel()
     
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environmentObject(arViewModel)
+                .environmentObject(spatialViewModel)
         }
         
         ImmersiveSpace(id: "ImmersiveSpace") {
             ImmersiveView()
-                .environmentObject(arViewModel)
+                .environmentObject(spatialViewModel)
         }
         .immersionStyle(selection: .constant(.mixed), in: .mixed)
     }
