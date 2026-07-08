@@ -2,14 +2,14 @@
 //  PlacedObject.swift
 //  PlaceObjects
 //
-//  Model representing a placed USDZ object in the AR scene
+//  Model representing a placed USDZ object in the spatial scene (visionOS)
 //
 
 import Foundation
 import RealityKit
 import simd
 
-/// Represents a placed object in the AR scene
+/// Represents a placed object in the spatial scene
 struct PlacedObject: Identifiable, Codable {
     let id: UUID
     var name: String
@@ -33,7 +33,7 @@ struct PlacedObject: Identifiable, Codable {
     }
 }
 
-/// Codable representation of entity transform
+/// Codable representation of entity transform for persistence
 struct TransformData: Codable {
     var position: SIMD3Data
     var rotation: QuaternionData
@@ -43,6 +43,12 @@ struct TransformData: Codable {
         self.position = SIMD3Data(x: position.x, y: position.y, z: position.z)
         self.rotation = QuaternionData(x: rotation.vector.x, y: rotation.vector.y, z: rotation.vector.z, w: rotation.vector.w)
         self.scale = SIMD3Data(x: scale.x, y: scale.y, z: scale.z)
+    }
+    
+    init(from transform: Transform) {
+        self.position = SIMD3Data(x: transform.translation.x, y: transform.translation.y, z: transform.translation.z)
+        self.rotation = QuaternionData(x: transform.rotation.vector.x, y: transform.rotation.vector.y, z: transform.rotation.vector.z, w: transform.rotation.vector.w)
+        self.scale = SIMD3Data(x: transform.scale.x, y: transform.scale.y, z: transform.scale.z)
     }
     
     func toTransform() -> Transform {

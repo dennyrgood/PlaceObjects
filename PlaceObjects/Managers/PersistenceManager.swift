@@ -23,8 +23,12 @@ class PersistenceManager: ObservableObject {
     @Published var syncStatus: SyncStatus = .idle
     
     private let localStorageKey = "PlacedObjectsData"
-    private let container: CKContainer
-    private let database: CKDatabase
+    private lazy var container: CKContainer = {
+        return CKContainer(identifier: Self.cloudKitContainerIdentifier)
+    }()
+    private lazy var database: CKDatabase = {
+        return container.privateCloudDatabase
+    }()
     
     enum SyncStatus {
         case idle
@@ -34,15 +38,12 @@ class PersistenceManager: ObservableObject {
     }
     
     init() {
-        // Initialize CloudKit container using configurable identifier
-        self.container = CKContainer(identifier: Self.cloudKitContainerIdentifier)
-        self.database = container.privateCloudDatabase
-        
-        // Load from local storage
+        // Load from local storage immediately (no CloudKit dependency)
         loadFromLocalStorage()
         
-        // Check iCloud availability
-        checkiCloudStatus()
+        // Only check iCloud if explicitly enabled by user
+        // Don't check automatically to avoid simulator issues
+        print("PersistenceManager initialized - iCloud sync disabled by default")
     }
     
     // MARK: - Local Storage
@@ -117,20 +118,45 @@ class PersistenceManager: ObservableObject {
     // MARK: - iCloud Sync
     
     private func checkiCloudStatus() {
-        container.accountStatus { [weak self] status, error in
+        // Add timeout to prevent hanging in simulator
+        let timeoutWorkItem = DispatchWorkItem { [weak self] in
             DispatchQueue.main.async {
-                if error != nil {
+                print("iCloud status check timed out - disabling iCloud sync")
+                self?.iCloudSyncEnabled = false
+            }
+        }
+        
+        DispatchQueue.global().asyncAfter(deadline: .now() + 5.0, execute: timeoutWorkItem)
+        
+        container.accountStatus { [weak self] status, error in
+            timeoutWorkItem.cancel() // Cancel timeout if we got a response
+            
+            DispatchQueue.main.async {
+                if let error = error {
+                    print("iCloud status check error: \(error.localizedDescription)")
                     self?.iCloudSyncEnabled = false
                     return
                 }
                 
                 switch status {
                 case .available:
+                    print("iCloud available - enabling sync")
                     self?.iCloudSyncEnabled = true
                     self?.syncFromiCloud()
-                case .noAccount, .restricted, .couldNotDetermine:
+                case .noAccount:
+                    print("No iCloud account - sync disabled")
+                    self?.iCloudSyncEnabled = false
+                case .restricted:
+                    print("iCloud restricted - sync disabled")
+                    self?.iCloudSyncEnabled = false
+                case .couldNotDetermine:
+                    print("Could not determine iCloud status - sync disabled")
+                    self?.iCloudSyncEnabled = false
+                case .temporarilyUnavailable:
+                    print("iCloud temporarily unavailable - sync disabled")
                     self?.iCloudSyncEnabled = false
                 @unknown default:
+                    print("Unknown iCloud status - sync disabled")
                     self?.iCloudSyncEnabled = false
                 }
             }
@@ -166,32 +192,32 @@ class PersistenceManager: ObservableObject {
         
         let query = CKQuery(recordType: "PlacedObject", predicate: NSPredicate(value: true))
         
-        database.perform(query, inZoneWith: nil) { [weak self] records, error in
+        database.fetch(withQuery: query, inZoneWith: nil, desiredKeys: nil, resultsLimit: CKQueryOperation.maximumResults) { [weak self] result in
             DispatchQueue.main.async {
-                if let error = error {
+                switch result {
+                case .success(let matchResults):
+                    let records = matchResults.matchResults.compactMap { try? $0.1.get() }
+                    self?.processRecordsFromiCloud(records)
+                    self?.syncStatus = .success
+                case .failure(let error):
                     self?.syncStatus = .failed(error)
                     print("Failed to sync from iCloud: \(error)")
-                    return
                 }
-                
-                guard let records = records else {
-                    self?.syncStatus = .success
-                    return
-                }
-                
-                var syncedObjects: [PlacedObject] = []
-                for record in records {
-                    if let data = record["data"] as? Data,
-                       let object = try? JSONDecoder().decode(PlacedObject.self, from: data) {
-                        syncedObjects.append(object)
-                    }
-                }
-                
-                // Merge with local objects (prefer newer versions)
-                self?.mergeObjects(syncedObjects)
-                self?.syncStatus = .success
             }
         }
+    }
+    
+    private func processRecordsFromiCloud(_ records: [CKRecord]) {
+        var syncedObjects: [PlacedObject] = []
+        for record in records {
+            if let data = record["data"] as? Data,
+               let object = try? JSONDecoder().decode(PlacedObject.self, from: data) {
+                syncedObjects.append(object)
+            }
+        }
+        
+        // Merge with local objects (prefer newer versions)
+        mergeObjects(syncedObjects)
     }
     
     private func deleteFromiCloud(_ object: PlacedObject) {
@@ -207,9 +233,10 @@ class PersistenceManager: ObservableObject {
     private func clearFromiCloud() {
         let query = CKQuery(recordType: "PlacedObject", predicate: NSPredicate(value: true))
         
-        database.perform(query, inZoneWith: nil) { [weak self] records, error in
-            guard let records = records, error == nil else { return }
+        database.fetch(withQuery: query, inZoneWith: nil, desiredKeys: nil, resultsLimit: CKQueryOperation.maximumResults) { [weak self] result in
+            guard case .success(let matchResults) = result else { return }
             
+            let records = matchResults.matchResults.compactMap { try? $0.1.get() }
             let recordIDs = records.map { $0.recordID }
             let deleteOperation = CKModifyRecordsOperation(recordsToSave: nil, recordIDsToDelete: recordIDs)
             
@@ -238,10 +265,14 @@ class PersistenceManager: ObservableObject {
     
     /// Toggle iCloud sync
     func toggleiCloudSync() {
-        iCloudSyncEnabled.toggle()
-        
-        if iCloudSyncEnabled {
-            syncFromiCloud()
+        if !iCloudSyncEnabled {
+            // User is turning it ON - check status first
+            print("User enabling iCloud sync - checking status...")
+            checkiCloudStatus()
+        } else {
+            // User is turning it OFF
+            print("User disabled iCloud sync")
+            iCloudSyncEnabled = false
         }
     }
 }
